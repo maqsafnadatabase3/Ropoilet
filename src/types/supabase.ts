@@ -35,91 +35,126 @@ export interface Database {
           avatar_url?: string | null
         }
       }
-      games: {
+      subscription_plans: {
         Row: {
           id: string
+          name: string
+          description: string
+          price: number
+          duration: 'monthly' | 'yearly'
+          features: string[]
+          is_public: boolean
+          limits: Json
           created_at: string
-          name: string
-          description: string
-          owner_id: string
-          status: 'active' | 'development' | 'maintenance'
-          game_url: string | null
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          name: string
-          description: string
-          owner_id: string
-          status?: 'active' | 'development' | 'maintenance'
-          game_url?: string | null
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          name?: string
-          description?: string
-          owner_id?: string
-          status?: 'active' | 'development' | 'maintenance'
-          game_url?: string | null
-        }
-      }
-      game_stats: {
-        Row: {
-          id: string
-          game_id: string
-          active_players: number
-          total_visits: number
-          avg_session_time: number
-          revenue_today: number
           updated_at: string
         }
         Insert: {
           id?: string
-          game_id: string
-          active_players: number
-          total_visits: number
-          avg_session_time: number
-          revenue_today: number
+          name: string
+          description: string
+          price: number
+          duration: 'monthly' | 'yearly'
+          features: string[]
+          is_public?: boolean
+          limits?: Json
+          created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          game_id?: string
-          active_players?: number
-          total_visits?: number
-          avg_session_time?: number
-          revenue_today?: number
+          name?: string
+          description?: string
+          price?: number
+          duration?: 'monthly' | 'yearly'
+          features?: string[]
+          is_public?: boolean
+          limits?: Json
+          created_at?: string
           updated_at?: string
+        }
+      }
+      subscription_plan_history: {
+        Row: {
+          id: string
+          plan_id: string
+          change_type: 'created' | 'updated' | 'deleted'
+          previous_data: Json | null
+          new_data: Json
+          changed_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          plan_id: string
+          change_type: 'created' | 'updated' | 'deleted'
+          previous_data?: Json | null
+          new_data: Json
+          changed_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          plan_id?: string
+          change_type?: 'created' | 'updated' | 'deleted'
+          previous_data?: Json | null
+          new_data?: Json
+          changed_by?: string
+          created_at?: string
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          body: string
+          read: boolean
+          type: 'subscription_update' | 'subscription_delete' | 'general'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          body: string
+          read?: boolean
+          type: 'subscription_update' | 'subscription_delete' | 'general'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          body?: string
+          read?: boolean
+          type?: 'subscription_update' | 'subscription_delete' | 'general'
+          created_at?: string
         }
       }
       subscriptions: {
         Row: {
           id: string
           user_id: string
-          tier: 'free' | 'premium' | 'enterprise'
+          plan_id: string
           status: 'active' | 'cancelled' | 'expired'
           created_at: string
           expires_at: string | null
-          price: number
         }
         Insert: {
           id?: string
           user_id: string
-          tier: 'free' | 'premium' | 'enterprise'
+          plan_id: string
           status?: 'active' | 'cancelled' | 'expired'
           created_at?: string
           expires_at?: string | null
-          price: number
         }
         Update: {
           id?: string
           user_id?: string
-          tier?: 'free' | 'premium' | 'enterprise'
+          plan_id?: string
           status?: 'active' | 'cancelled' | 'expired'
           created_at?: string
           expires_at?: string | null
-          price?: number
         }
       }
       revenue: {

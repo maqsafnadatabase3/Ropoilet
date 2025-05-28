@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/types/supabase';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -7,76 +8,74 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
-// Types for our database tables
-export interface GameStats {
-  id: string;
-  game_id: string;
-  active_players: number;
-  total_visits: number;
-  avg_session_time: number;
-  engagement_rate: number;
-  server_status: 'online' | 'offline' | 'maintenance';
-  updated_at: string;
-}
+export type Tables = Database['public']['Tables'];
+export type Enums = Database['public']['Enums'];
 
-export interface Revenue {
-  id: string;
-  game_id: string;
-  amount: number;
-  type: 'subscription' | 'in_game' | 'other';
-  transaction_date: string;
-  status: 'completed' | 'pending' | 'failed';
-}
-
-export interface User {
-  id: string;
-  email: string;
-  role: 'admin' | 'moderator' | 'user';
-  subscription_tier: 'free' | 'premium' | 'enterprise';
-  created_at: string;
-}
+// Type definitions for our database tables
+export type Profile = Tables['profiles']['Row'];
+export type Game = Tables['games']['Row'];
+export type GameStats = Tables['game_stats']['Row'];
+export type Subscription = Tables['subscriptions']['Row'];
+export type Revenue = Tables['revenue']['Row'];
 
 // Helper functions for data fetching
-export const fetchGameStats = async (gameId: string): Promise<GameStats | null> => {
+export async function fetchProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchGames(userId?: string) {
+  let query = supabase.from('games').select('*');
+  if (userId) {
+    query = query.eq('owner_id', userId);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchGameStats(gameId: string) {
   const { data, error } = await supabase
     .from('game_stats')
     .select('*')
     .eq('game_id', gameId)
     .single();
 
-  if (error) {
-    console.error('Error fetching game stats:', error);
-    return null;
-  }
-
+  if (error) throw error;
   return data;
-};
+}
 
-export const fetchRevenue = async (
-  startDate: string,
-  endDate: string
-): Promise<Revenue[]> => {
+export async function fetchRevenue(startDate: string, endDate: string) {
   const { data, error } = await supabase
     .from('revenue')
     .select('*')
-    .gte('transaction_date', startDate)
-    .lte('transaction_date', endDate)
-    .order('transaction_date', { ascending: false });
+    .gte('created_at', startDate)
+    .lte('created_at', endDate);
 
-  if (error) {
-    console.error('Error fetching revenue:', error);
-    return [];
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchSubscriptions(userId?: string) {
+  let query = supabase.from('subscriptions').select('*');
+  if (userId) {
+    query = query.eq('user_id', userId);
   }
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
 
-  return data || [];
-};
-
-export const subscribeToGameStats = (
-  gameId: string,
-  callback: (payload: GameStats) => void
-) => {
+// Real-time subscriptions
+export function subscribeToGameStats(gameId: string, callback: (payload: GameStats) => void) {
   return supabase
     .channel(`game_stats:${gameId}`)
     .on(
@@ -90,19 +89,19 @@ export const subscribeToGameStats = (
       (payload) => callback(payload.new as GameStats)
     )
     .subscribe();
-};
+}
 
-export const checkUserRole = async (userId: string): Promise<string | null> => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', userId)
-    .single();
-
-  if (error) {
-    console.error('Error checking user role:', error);
-    return null;
-  }
-
-  return data?.role || null;
-};
+export function subscribeToRevenue(callback: (payload: Revenue) => void) {
+  return supabase
+    .channel('revenue')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'revenue',
+      },
+      (payload) => callback(payload.new as Revenue)
+    )
+    .subscribe();
+}
